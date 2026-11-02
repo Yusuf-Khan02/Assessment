@@ -238,7 +238,7 @@ export class VendorController {
 
       // Trigger async evaluation in background for each submitted profile
       for (const p of createdProfiles) {
-        RecommendationService.triggerAsyncEvaluation(p.id);
+        RecommendationService.triggerAsyncEvaluation(p.id, req.id);
       }
 
       res.status(201).json({
@@ -279,9 +279,11 @@ export class VendorController {
         return;
       }
 
-      await prisma.hiringProfile.update({
-        where: { id: profileId },
-        data: { isDeleted: true },
+      await prisma.$transaction(async (tx) => {
+        return tx.hiringProfile.update({
+          where: { id: profileId },
+          data: { isDeleted: true },
+        });
       });
 
       res.status(200).json({ message: 'Profile soft-deleted successfully' });

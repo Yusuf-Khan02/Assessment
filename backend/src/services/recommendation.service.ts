@@ -6,6 +6,7 @@ import {
   GroqProvider,
   AutonomousAgentProvider,
 } from '../agent/llm-core';
+import { recommendationQueue } from '../queue/recommendation.queue';
 
 export class RecommendationService {
   private static provider: LLMProvider | null = null;
@@ -102,14 +103,9 @@ export class RecommendationService {
 
   /**
    * Background trigger helper for automatic profile evaluation on SUBMITTED
+   * Uses non-blocking recommendation queue
    */
-  static triggerAsyncEvaluation(profileId: number): void {
-    setImmediate(async () => {
-      try {
-        await this.evaluateProfile(profileId);
-      } catch (err: unknown) {
-        console.error(`Background evaluation failed for profile ${profileId}:`, err);
-      }
-    });
+  static triggerAsyncEvaluation(profileId: number, requestId?: string): void {
+    recommendationQueue.enqueue(profileId, requestId);
   }
 }

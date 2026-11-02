@@ -3,6 +3,7 @@ import { LLMProvider, LLMMessage } from './llm-core';
 import { agentOutputSchema, AgentOutput, StructuredObservabilityLog } from './types';
 import { DecisionPolicy } from './decision-policy';
 import { PromptInjectionSanitizer } from './prompt-injection';
+import { Logger } from '../utils/logger';
 
 export interface OrchestratorContext {
   profileId: number;
@@ -179,6 +180,14 @@ Location: ${context.jobLocation || 'Remote'}
 
     const totalLatencyMs = Math.round(performance.now() - startTimeMs);
     const decision = DecisionPolicy.evaluate(validatedOutput.score);
+
+    // Enforce performance budget: per-profile agent processing <= 1500ms
+    if (totalLatencyMs > 1500) {
+      Logger.perfAlert('AGENT_PER_PROFILE_LATENCY_EXCEEDED', 1500, totalLatencyMs, {
+        profileId: context.profileId,
+        openingId: context.openingId,
+      });
+    }
 
     const log: StructuredObservabilityLog = {
       timestamp: new Date().toISOString(),

@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { requestIdMiddleware } from './middleware/request-id.middleware';
 import authRoutes from './routes/auth.routes';
 import vendorRoutes from './routes/vendor.routes';
 import hiringManagerRoutes from './routes/hiring-manager.routes';
@@ -12,6 +13,7 @@ export const app: Express = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requestIdMiddleware);
 
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
