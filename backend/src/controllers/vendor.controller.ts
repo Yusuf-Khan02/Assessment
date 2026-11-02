@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../prisma';
 import { S3Service } from '../services/s3.service';
+import { RecommendationService } from '../services/recommendation.service';
 import { getTenantId, getUserId, sanitizeProfilesForRole } from '../middleware/tenant.middleware';
 import { UserRole } from '@prisma/client';
 
@@ -234,6 +235,11 @@ export class VendorController {
         }
         return results;
       });
+
+      // Trigger async evaluation in background for each submitted profile
+      for (const p of createdProfiles) {
+        RecommendationService.triggerAsyncEvaluation(p.id);
+      }
 
       res.status(201).json({
         message: `Successfully submitted ${createdProfiles.length} profiles`,
