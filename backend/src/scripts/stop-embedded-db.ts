@@ -21,3 +21,4 @@ stop().catch((err: unknown) => {
   console.error('Failed to stop PostgreSQL:', err);
   process.exit(1);
 });
+

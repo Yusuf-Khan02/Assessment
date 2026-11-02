@@ -9,3 +9,4 @@ describe('Health endpoint', () => {
     expect(res.body.status).toBe('ok');
   });
 });
+

@@ -53,3 +53,4 @@ jobs:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/assessment_db?schema=public"
           JWT_SECRET: "test-secret-at-least-32-characters-long"
         run: npm test
+

@@ -99,3 +99,4 @@ if (require.main === module) {
     process.exit(passed ? 0 : 1);
   });
 }
+
