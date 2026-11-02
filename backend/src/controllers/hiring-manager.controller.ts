@@ -268,7 +268,7 @@ export class HiringManagerController {
 
   /**
    * GET /api/hiring-manager/profiles/:id/preview
-   * Generates secure presigned download/preview URL for candidate resume via backend.
+   * Generates secure backend preview URL for candidate resume.
    */
   static async previewProfile(req: Request, res: Response): Promise<void> {
     try {
@@ -297,14 +297,66 @@ export class HiringManagerController {
         return;
       }
 
-      const previewUrl = await S3Service.getPresignedDownloadUrl(profile.s3Key, 3600);
+      const fileName = profile.s3Key.slice(profile.s3Key.lastIndexOf('/') + 1);
+      const previewUrl = `/api/hiring-manager/profiles/${profile.id}/preview/file?fileName=${encodeURIComponent(fileName)}`;
+
       res.status(200).json({
         profileId: profile.id,
-        fileName: profile.s3Key.slice(profile.s3Key.lastIndexOf('/') + 1),
+        fileName,
         previewUrl,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to generate preview URL';
+      res.status(500).json({ error: message });
+    }
+  }
+
+  /**
+   * GET /api/hiring-manager/profiles/:id/preview/file
+   * Streams the candidate resume document securely via backend.
+   */
+  static async streamProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = getTenantId(req);
+      const userId = getUserId(req);
+      const profileId = parseInt(req.params.id);
+
+      if (isNaN(profileId)) {
+        res.status(400).json({ error: 'Invalid profile ID' });
+        return;
+      }
+
+      const profile = await prisma.hiringProfile.findFirst({
+        where: {
+          id: profileId,
+          isDeleted: false,
+          opening: {
+            tenantId,
+            hiringManagerId: userId,
+          },
+        },
+      });
+
+      if (!profile) {
+        res.status(404).json({ error: 'Profile not found or access denied' });
+        return;
+      }
+
+      const fileName = profile.s3Key.slice(profile.s3Key.lastIndexOf('/') + 1);
+      const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+      const buffer = await S3Service.getObjectBuffer(profile.s3Key);
+
+      const contentType =
+        ext === '.pdf'
+          ? 'application/pdf'
+          : 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to stream profile file';
       res.status(500).json({ error: message });
     }
   }

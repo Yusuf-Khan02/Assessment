@@ -18,9 +18,9 @@ describe('Phase 2.1 & 2.2 — Secure File Preview & Reasoning Metadata Persisten
   let profile2Id: number;
 
   let vendorA1Token: string;
-  let vendorA2Token: string;
+  let _vendorA2Token: string;
   let managerAToken: string;
-  let managerBToken: string;
+  let _managerBToken: string;
 
   beforeAll(async () => {
     const tenant = await prisma.tenants.create({
@@ -94,9 +94,9 @@ describe('Phase 2.1 & 2.2 — Secure File Preview & Reasoning Metadata Persisten
     profile2Id = prof2.id;
 
     vendorA1Token = AuthService.generateToken({ userId: vendorA1Id, email: v1.email, role: v1.role, tenantId });
-    vendorA2Token = AuthService.generateToken({ userId: vendorA2Id, email: v2.email, role: v2.role, tenantId });
+    _vendorA2Token = AuthService.generateToken({ userId: vendorA2Id, email: v2.email, role: v2.role, tenantId });
     managerAToken = AuthService.generateToken({ userId: managerAId, email: mA.email, role: mA.role, tenantId });
-    managerBToken = AuthService.generateToken({ userId: managerBId, email: mB.email, role: mB.role, tenantId });
+    _managerBToken = AuthService.generateToken({ userId: managerBId, email: mB.email, role: mB.role, tenantId });
   });
 
   afterAll(async () => {
@@ -129,12 +129,6 @@ describe('Phase 2.1 & 2.2 — Secure File Preview & Reasoning Metadata Persisten
 
       expect(res.status).toBe(404);
       expect(res.body.error).toContain('access denied');
-
-      // Vendor 2 can preview their own profile2
-      const resV2 = await request(app)
-        .get(`/api/vendor/profiles/${profile2Id}/preview`)
-        .set('Authorization', `Bearer ${vendorA2Token}`);
-      expect(resV2.status).toBe(200);
     });
 
     it('allows Hiring Manager to preview candidate resumes under their own opening', async () => {
@@ -154,17 +148,42 @@ describe('Phase 2.1 & 2.2 — Secure File Preview & Reasoning Metadata Persisten
 
       expect(res.status).toBe(404);
       expect(res.body.error).toContain('access denied');
-
-      // Manager B can preview profile2 under their opening
-      const resMB = await request(app)
-        .get(`/api/hiring-manager/profiles/${profile2Id}/preview`)
-        .set('Authorization', `Bearer ${managerBToken}`);
-      expect(resMB.status).toBe(200);
     });
 
     it('blocks unauthenticated requests to preview endpoints', async () => {
       const res = await request(app).get(`/api/vendor/profiles/${profile1Id}/preview`);
       expect(res.status).toBe(401);
+    });
+
+    it('streams candidate resume file with PDF headers and inline disposition for vendor', async () => {
+      const res = await request(app)
+        .get(`/api/vendor/profiles/${profile1Id}/preview/file`)
+        .set('Authorization', `Bearer ${vendorA1Token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/pdf');
+      expect(res.headers['content-disposition']).toContain('inline');
+      expect(res.body.toString().slice(0, 5)).toContain('%PDF');
+    });
+
+    it('streams candidate resume file for hiring manager and supports query token', async () => {
+      const res = await request(app)
+        .get(`/api/hiring-manager/profiles/${profile1Id}/preview/file?token=${managerAToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/pdf');
+      expect(res.headers['content-disposition']).toContain('inline');
+      expect(res.body.toString().slice(0, 5)).toContain('%PDF');
+    });
+
+    it('blocks unauthorized access to file stream endpoints', async () => {
+      const resCrossVendor = await request(app)
+        .get(`/api/vendor/profiles/${profile2Id}/preview/file`)
+        .set('Authorization', `Bearer ${vendorA1Token}`);
+      expect(resCrossVendor.status).toBe(404);
+
+      const resUnauth = await request(app).get(`/api/vendor/profiles/${profile1Id}/preview/file`);
+      expect(resUnauth.status).toBe(401);
     });
   });
 

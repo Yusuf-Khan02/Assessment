@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, ExternalLink, Loader2, AlertCircle, FileText } from 'lucide-react';
+import { X, ExternalLink, Loader2, AlertCircle, FileText, Download, Presentation } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface ResumePreviewModalProps {
@@ -17,8 +17,10 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
 }) => {
   const { token } = useAuth();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPptx, setIsPptx] = useState(false);
 
   useEffect(() => {
     if (!profileId || !token) return;
@@ -26,6 +28,11 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
     let isMounted = true;
     setLoading(true);
     setError(null);
+    setPreviewUrl(null);
+    setBlobUrl(null);
+
+    const isPresentation = fileName.toLowerCase().endsWith('.pptx');
+    setIsPptx(isPresentation);
 
     const endpoint =
       role === 'IT_VENDOR'
@@ -37,19 +44,50 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
     })
       .then((res) => {
         if (!res.ok) {
-          throw new Error('Failed to retrieve preview URL from backend');
+          throw new Error('Failed to retrieve preview metadata from backend');
         }
         return res.json();
       })
-      .then((data) => {
-        if (isMounted) {
+      .then(async (data) => {
+        if (!isMounted) return;
+
+        // If backend returned a non-API external URL (e.g. mock test url)
+        if (data.previewUrl && data.previewUrl.startsWith('http') && !data.previewUrl.includes('/api/')) {
           setPreviewUrl(data.previewUrl);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch document stream securely via backend
+        const streamUrl = data.previewUrl.startsWith('http')
+          ? data.previewUrl
+          : `${data.previewUrl}${data.previewUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+
+        const fileRes = await fetch(streamUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!fileRes.ok) {
+          throw new Error(`Failed to stream document (${fileRes.status})`);
+        }
+
+        const blob = typeof fileRes.blob === 'function' ? await fileRes.blob() : new Blob();
+        const mimeType = isPresentation
+          ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+          : 'application/pdf';
+
+        const typedBlob = new Blob([blob], { type: mimeType });
+        const objectUrl = URL.createObjectURL(typedBlob);
+
+        if (isMounted) {
+          setBlobUrl(objectUrl);
+          setPreviewUrl(objectUrl);
           setLoading(false);
         }
       })
       .catch((err) => {
         if (isMounted) {
-          setError(err.message || 'Error loading preview');
+          setError(err.message || 'Error loading document preview');
           setLoading(false);
         }
       });
@@ -57,7 +95,16 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [profileId, role, token]);
+  }, [profileId, role, token, fileName]);
+
+  // Clean up object URL on unmount or URL change
+  useEffect(() => {
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [blobUrl]);
 
   if (!profileId) return null;
 
@@ -72,7 +119,7 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-850">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg">
-              <FileText className="w-5 h-5" />
+              {isPptx ? <Presentation className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate max-w-md">
@@ -97,6 +144,17 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
               </a>
             )}
 
+            {blobUrl && (
+              <a
+                href={blobUrl}
+                download={fileName}
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg transition"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download</span>
+              </a>
+            )}
+
             <button
               onClick={onClose}
               className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -112,7 +170,7 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
           {loading && (
             <div className="flex flex-col items-center justify-center space-y-3 text-gray-500 dark:text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-              <p className="text-sm">Fetching secure presigned document stream...</p>
+              <p className="text-sm">Fetching secure document stream...</p>
             </div>
           )}
 
@@ -124,7 +182,29 @@ export const ResumePreviewModal: React.FC<ResumePreviewModalProps> = ({
             </div>
           )}
 
-          {!loading && !error && previewUrl && (
+          {!loading && !error && previewUrl && isPptx && (
+            <div className="text-center p-8 max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-200 dark:border-gray-700">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Presentation className="w-8 h-8" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                PowerPoint Presentation Document
+              </h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                {fileName} is ready for download or external review.
+              </p>
+              <a
+                href={blobUrl || previewUrl}
+                download={fileName}
+                className="inline-flex items-center space-x-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium shadow-md shadow-blue-500/20 transition"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Presentation</span>
+              </a>
+            </div>
+          )}
+
+          {!loading && !error && previewUrl && !isPptx && (
             <iframe
               src={previewUrl}
               title={`Preview of ${fileName}`}
