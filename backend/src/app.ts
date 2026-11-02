@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import vendorRoutes from './routes/vendor.routes';
 import testGuardRoutes from './routes/test-guard.routes';
 
 dotenv.config();
@@ -16,4 +17,5 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/vendor', vendorRoutes);
 app.use('/api/test', testGuardRoutes);
