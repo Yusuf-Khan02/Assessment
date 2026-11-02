@@ -34,3 +34,4 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
 
   return <Outlet />;
 };
+

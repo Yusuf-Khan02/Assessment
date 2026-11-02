@@ -39,6 +39,22 @@ async function start() {
   }
 
   console.log('PostgreSQL is running and ready for connections.');
+
+  // Keep Node process alive so the embedded postgres server stays active
+  setInterval(() => {}, 1000 * 60 * 60);
+
+  const shutdown = async () => {
+    console.log('Shutting down PostgreSQL server...');
+    try {
+      await pg.stop();
+    } catch {
+      // ignore
+    }
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 start().catch((err: unknown) => {

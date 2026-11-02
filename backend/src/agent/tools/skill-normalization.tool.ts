@@ -71,3 +71,4 @@ export class SkillNormalizationTool {
     return Array.from(normalizedSet);
   }
 }
+

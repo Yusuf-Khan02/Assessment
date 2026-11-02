@@ -558,3 +558,4 @@ export const VendorOpeningDetailPage: React.FC = () => {
     </div>
   );
 };
+

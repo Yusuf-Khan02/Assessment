@@ -237,3 +237,4 @@ export const VendorOpeningsPage: React.FC = () => {
     </div>
   );
 };
+

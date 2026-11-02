@@ -48,3 +48,4 @@ export interface StructuredObservabilityLog {
   };
   errors?: string[];
 }
+

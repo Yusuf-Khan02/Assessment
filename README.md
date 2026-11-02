@@ -248,3 +248,4 @@ npm run lint
 - [x] **Deterministic AI agent implemented**: Mathematical scoring engine outside LLM guarantees identical scores for identical inputs.
 - [x] **Performance SLAs met**: P95 latency is 236ms (< 2000ms SLA budget); max HTTP blocking call is 28ms (< 2000ms budget).
 - [x] **Production-grade, testable, explainable**: 93 automated tests across backend and frontend, 85.5% test coverage, 0 lint warnings.
+

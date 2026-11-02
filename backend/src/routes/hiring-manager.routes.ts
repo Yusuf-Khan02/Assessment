@@ -15,3 +15,4 @@ router.post('/profiles/:id/shortlist', HiringManagerController.shortlistProfile)
 router.post('/profiles/:id/reject', HiringManagerController.rejectProfile);
 
 export default router;
+

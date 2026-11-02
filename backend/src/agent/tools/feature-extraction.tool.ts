@@ -104,3 +104,4 @@ export class FeatureExtractionTool {
     return featureVectorSchema.parse(featureVector);
   }
 }
+

@@ -73,3 +73,4 @@ export class Logger {
     console.warn(`[PERFORMANCE_ALERT]: ${entry}`);
   }
 }
+

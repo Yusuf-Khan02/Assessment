@@ -7,6 +7,11 @@
     "frontend"
   ],
   "scripts": {
+    "dev": "concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "db:start": "npm run db:start --workspace=backend",
+    "db:stop": "npm run db:stop --workspace=backend",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "test": "npm run test --workspaces --if-present",
@@ -18,6 +23,7 @@
   },
   "devDependencies": {
     "@csstools/css-tokenizer": "^4.0.2",
+    "concurrently": "^10.0.6",
     "prettier": "^3.3.3"
   }
 }

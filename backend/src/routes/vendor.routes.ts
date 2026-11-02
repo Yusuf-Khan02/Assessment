@@ -16,3 +16,4 @@ router.post('/openings/:id/profiles/upload', VendorController.submitProfiles);
 router.delete('/profiles/:id', VendorController.softDeleteProfile);
 
 export default router;
+

@@ -199,3 +199,4 @@ export const HiringManagerOpeningsPage: React.FC = () => {
     </div>
   );
 };
+
