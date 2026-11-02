@@ -6,6 +6,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { VendorOpeningsPage } from './pages/VendorOpeningsPage';
 import { VendorOpeningDetailPage } from './pages/VendorOpeningDetailPage';
+import { HiringManagerOpeningsPage } from './pages/HiringManagerOpeningsPage';
+import { HiringManagerOpeningDetailPage } from './pages/HiringManagerOpeningDetailPage';
 
 const RootRedirect: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -33,11 +35,12 @@ export const App: React.FC = () => {
               <Route path="/vendor/openings/:id" element={<VendorOpeningDetailPage />} />
             </Route>
 
-            {/* Hiring Manager Routes (Phase 7) */}
+            {/* Hiring Manager Routes */}
             <Route element={<ProtectedRoute allowedRoles={['HIRING_MANAGER']} />}>
+              <Route path="/hiring-manager/openings" element={<HiringManagerOpeningsPage />} />
               <Route
-                path="/hiring-manager/openings"
-                element={<Navigate to="/" replace />}
+                path="/hiring-manager/openings/:id"
+                element={<HiringManagerOpeningDetailPage />}
               />
             </Route>
 
