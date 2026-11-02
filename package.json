@@ -1,0 +1,22 @@
+{
+  "name": "assessment-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "test": "npm run test --workspace=backend",
+    "build": "npm run build --workspaces --if-present",
+    "prisma:generate": "npm run prisma:generate --workspace=backend",
+    "prisma:migrate:dev": "npm run prisma:migrate:dev --workspace=backend",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy --workspace=backend",
+    "prisma:seed": "npm run prisma:seed --workspace=backend"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}

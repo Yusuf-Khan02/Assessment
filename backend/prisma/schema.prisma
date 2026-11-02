@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OpeningStatus {
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum ProfileStatus {
+  SUBMITTED
+  SHORTLISTED
+  REJECTED
+}
+
+enum UserRole {
+  IT_VENDOR
+  HIRING_MANAGER
+}
+
+model Tenants {
+  tenantId  String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  users     User[]
+  openings  Opening[]
+}
+
+model User {
+  id               String          @id @default(uuid())
+  tenantId         String
+  email            String          @unique
+  passwordHash     String
+  role             UserRole
+  name             String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  tenant           Tenants         @relation(fields: [tenantId], references: [tenantId])
+  openings         Opening[]       @relation("HiringManagerOpenings")
+  uploadedProfiles hiringProfile[] @relation("UploadedProfiles")
+
+  @@index([tenantId])
+}
+
+model Opening {
+  id                     String          @id @default(uuid())
+  tenantId               String
+  title                  String
+  description            String?
+  location               String?
+  contractType           String?
+  hiringManagerId        String
+  experienceMin          Int
+  experienceMax          Int?
+  postedDate             DateTime        @default(now())
+  expectedCompletionDate DateTime?
+  actionDate             DateTime?
+  status                 OpeningStatus   @default(OPEN)
+  tenant                 Tenants         @relation(fields: [tenantId], references: [tenantId])
+  hiringManager          User            @relation("HiringManagerOpenings", fields: [hiringManagerId], references: [id])
+  hiringProfiles         hiringProfile[]
+
+  @@index([tenantId])
+}
+
+model hiringProfile {
+  id                      Int           @id @default(autoincrement())
+  openingId               String
+  s3Key                   String        @unique
+  uploadedBy              String
+  submittedAt             DateTime      @default(now())
+  status                  ProfileStatus @default(SUBMITTED)
+  shortlistedBy           String?
+  shortlistedAt           DateTime?
+  rejectedBy              String?
+  rejectedAt              DateTime?
+
+  // AI Agent Fields
+  recommended             Boolean?
+  recommendationScore     Float?
+  recommendationReason    String?
+  recommendationLatencyMs Int?
+  recommendationVersion   String?
+  recommendationConfidence Float?
+  recommendedAt           DateTime?
+
+  isDeleted               Boolean       @default(false)
+  opening                 Opening       @relation(fields: [openingId], references: [id])
+  uploader                User          @relation("UploadedProfiles", fields: [uploadedBy], references: [id])
+
+  @@index([openingId])
+  @@index([recommended])
+}
