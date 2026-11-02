@@ -6,5 +6,11 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 30000,
     fileParallelism: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/index.ts', 'src/scripts/**'],
+    },
   },
 });
