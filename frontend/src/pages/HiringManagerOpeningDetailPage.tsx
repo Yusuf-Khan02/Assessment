@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
+import { SkeletonCard, SkeletonDetail } from '../components/SkeletonLoader';
+import { ResumePreviewModal } from '../components/ResumePreviewModal';
 import { FixedSizeList as List } from 'react-window';
 import {
   ArrowLeft,
@@ -16,7 +18,20 @@ import {
   MapPin,
   Briefcase,
   User,
+  Eye,
+  BarChart2,
 } from 'lucide-react';
+
+export interface ReasoningMetadataUI {
+  skillMatchScore?: number;
+  experienceMatchScore?: number;
+  locationMatchScore?: number;
+  finalScore?: number;
+  matchingSkills?: string[];
+  missingSkills?: string[];
+  detectedExperience?: number;
+  detectedLocation?: string;
+}
 
 export interface ManagerProfileItem {
   id: number;
@@ -40,6 +55,7 @@ export interface ManagerProfileItem {
   recommendationLatencyMs: number | null;
   recommendationVersion: string | null;
   recommendedAt: string | null;
+  reasoningMetadata?: ReasoningMetadataUI | null;
   badge: 'Recommended' | 'Borderline' | 'Not Recommended' | string;
   badgeBand: 'RECOMMENDED' | 'BORDERLINE' | 'NOT_RECOMMENDED';
 }
@@ -62,6 +78,7 @@ export const HiringManagerOpeningDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [previewProfile, setPreviewProfile] = useState<{ id: number; fileName: string } | null>(null);
 
   const fetchProfiles = async () => {
     if (!id || !token) return;
@@ -260,35 +277,76 @@ export const HiringManagerOpeningDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* Action Buttons: Shortlist & Reject */}
-        <div className="flex items-center justify-end space-x-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+        {/* Intermediate Reasoning Breakdown (Formula Sub-Components) */}
+        {profile.reasoningMetadata && (
+          <div className="p-3 bg-gray-50/80 dark:bg-gray-700/20 rounded-lg border border-gray-100 dark:border-gray-700/50 space-y-2">
+            <div className="flex items-center space-x-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <BarChart2 className="w-3.5 h-3.5 text-blue-500" />
+              <span>Deterministic Formula Breakdown (0.5*Skill + 0.3*Exp + 0.2*Loc)</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-100 dark:border-gray-700">
+                <span className="text-gray-500 dark:text-gray-400 block text-[10px]">Skill Overlap (50%)</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {Math.round((profile.reasoningMetadata.skillMatchScore || 0) * 100)}%
+                </span>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-100 dark:border-gray-700">
+                <span className="text-gray-500 dark:text-gray-400 block text-[10px]">Experience (30%)</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {Math.round((profile.reasoningMetadata.experienceMatchScore || 0) * 100)}%
+                </span>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-100 dark:border-gray-700">
+                <span className="text-gray-500 dark:text-gray-400 block text-[10px]">Location (20%)</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {Math.round((profile.reasoningMetadata.locationMatchScore || 0) * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons: Preview, Shortlist & Reject */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
           <button
             type="button"
-            disabled={isActionPending || profile.status === 'REJECTED'}
-            onClick={() => handleReject(profile.id)}
-            className="flex items-center space-x-1.5 px-4 py-2 text-sm font-medium rounded-lg text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-900/60 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            onClick={() => setPreviewProfile({ id: profile.id, fileName: profile.fileName })}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-600 hover:text-blue-700 dark:text-blue-400 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 transition"
           >
-            {isActionPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <XCircle className="w-4 h-4" />
-            )}
-            <span>Reject</span>
+            <Eye className="w-3.5 h-3.5" />
+            <span>Preview Resume</span>
           </button>
 
-          <button
-            type="button"
-            disabled={isActionPending || profile.status === 'SHORTLISTED'}
-            onClick={() => handleShortlist(profile.id)}
-            className="flex items-center space-x-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition"
-          >
-            {isActionPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCircle className="w-4 h-4" />
-            )}
-            <span>Shortlist</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              disabled={isActionPending || profile.status === 'REJECTED'}
+              onClick={() => handleReject(profile.id)}
+              className="flex items-center space-x-1.5 px-4 py-2 text-sm font-medium rounded-lg text-rose-700 dark:text-rose-300 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-900/60 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {isActionPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <XCircle className="w-4 h-4" />
+              )}
+              <span>Reject</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isActionPending || profile.status === 'SHORTLISTED'}
+              onClick={() => handleShortlist(profile.id)}
+              className="flex items-center space-x-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm transition"
+            >
+              {isActionPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4" />
+              )}
+              <span>Shortlist</span>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -313,9 +371,10 @@ export const HiringManagerOpeningDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <SkeletonDetail />
+          <SkeletonCard count={3} />
+        </main>
       </div>
     );
   }
@@ -410,6 +469,15 @@ export const HiringManagerOpeningDetailPage: React.FC = () => {
           )}
         </div>
       </main>
+
+      {previewProfile && (
+        <ResumePreviewModal
+          profileId={previewProfile.id}
+          fileName={previewProfile.fileName}
+          role="HIRING_MANAGER"
+          onClose={() => setPreviewProfile(null)}
+        />
+      )}
     </div>
   );
 };

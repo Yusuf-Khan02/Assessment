@@ -70,3 +70,4 @@ export async function ensureDatabaseRunning(): Promise<void> {
   await prisma.$connect();
   console.log('[DB] Prisma connected to PostgreSQL successfully.');
 }
+

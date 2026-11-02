@@ -13,6 +13,7 @@ router.get('/openings', VendorController.getOpenings);
 router.get('/openings/:id', VendorController.getOpeningDetails);
 router.post('/openings/:id/profiles/presign', VendorController.presignProfiles);
 router.post('/openings/:id/profiles/upload', VendorController.submitProfiles);
+router.get('/profiles/:id/preview', VendorController.previewProfile);
 router.delete('/profiles/:id', VendorController.softDeleteProfile);
 
 export default router;

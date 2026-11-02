@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
+import { SkeletonTable } from '../components/SkeletonLoader';
 import { ChevronRight, ChevronLeft, MapPin, Briefcase, Calendar, AlertCircle } from 'lucide-react';
 
 export interface OpeningSummary {
@@ -97,8 +98,11 @@ export const VendorOpeningsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Openings Table */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        {loading ? (
+          <SkeletonTable rows={8} columns={6} />
+        ) : (
+          /* Openings Table */
+          <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
@@ -233,6 +237,7 @@ export const VendorOpeningsPage: React.FC = () => {
             </div>
           )}
         </div>
+        )}
       </main>
     </div>
   );

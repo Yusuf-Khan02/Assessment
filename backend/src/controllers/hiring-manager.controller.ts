@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { getTenantId, getUserId } from '../middleware/tenant.middleware';
 import { DecisionPolicy } from '../agent/decision-policy';
+import { S3Service } from '../services/s3.service';
 import { ProfileStatus } from '@prisma/client';
 
 export class HiringManagerController {
@@ -131,6 +132,7 @@ export class HiringManagerController {
           recommendationLatencyMs: p.recommendationLatencyMs,
           recommendationVersion: p.recommendationVersion,
           recommendedAt: p.recommendedAt,
+          reasoningMetadata: p.reasoningMetadata,
           badge: decision.badgeText,
           badgeBand: decision.decisionBand,
         };
@@ -260,6 +262,49 @@ export class HiringManagerController {
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Failed to reject profile';
+      res.status(500).json({ error: message });
+    }
+  }
+
+  /**
+   * GET /api/hiring-manager/profiles/:id/preview
+   * Generates secure presigned download/preview URL for candidate resume via backend.
+   */
+  static async previewProfile(req: Request, res: Response): Promise<void> {
+    try {
+      const tenantId = getTenantId(req);
+      const userId = getUserId(req);
+      const profileId = parseInt(req.params.id);
+
+      if (isNaN(profileId)) {
+        res.status(400).json({ error: 'Invalid profile ID' });
+        return;
+      }
+
+      const profile = await prisma.hiringProfile.findFirst({
+        where: {
+          id: profileId,
+          isDeleted: false,
+          opening: {
+            tenantId,
+            hiringManagerId: userId,
+          },
+        },
+      });
+
+      if (!profile) {
+        res.status(404).json({ error: 'Profile not found or access denied' });
+        return;
+      }
+
+      const previewUrl = await S3Service.getPresignedDownloadUrl(profile.s3Key, 3600);
+      res.status(200).json({
+        profileId: profile.id,
+        fileName: profile.s3Key.slice(profile.s3Key.lastIndexOf('/') + 1),
+        previewUrl,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to generate preview URL';
       res.status(500).json({ error: message });
     }
   }

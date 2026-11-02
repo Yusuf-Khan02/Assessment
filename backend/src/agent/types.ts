@@ -20,6 +20,17 @@ export const scoringBreakdownSchema = z.object({
 
 export type ScoringBreakdown = z.infer<typeof scoringBreakdownSchema>;
 
+export interface ReasoningMetadata {
+  skillMatchScore: number;
+  experienceMatchScore: number;
+  locationMatchScore: number;
+  finalScore: number;
+  matchingSkills?: string[];
+  missingSkills?: string[];
+  detectedExperience?: number;
+  detectedLocation?: string;
+}
+
 export const agentOutputSchema = z.object({
   recommended: z.boolean(),
   score: z.number().min(0).max(1),

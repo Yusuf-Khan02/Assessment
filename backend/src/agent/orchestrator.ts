@@ -1,6 +1,11 @@
 import { ToolRegistry } from './tool-registry';
 import { LLMProvider, LLMMessage } from './llm-core';
-import { agentOutputSchema, AgentOutput, StructuredObservabilityLog } from './types';
+import {
+  agentOutputSchema,
+  AgentOutput,
+  StructuredObservabilityLog,
+  ReasoningMetadata,
+} from './types';
 import { DecisionPolicy } from './decision-policy';
 import { PromptInjectionSanitizer } from './prompt-injection';
 import { Logger } from '../utils/logger';
@@ -21,6 +26,7 @@ export interface OrchestrationResult {
   output: AgentOutput;
   log: StructuredObservabilityLog;
   iterations: number;
+  metadata?: ReasoningMetadata;
 }
 
 export class AgentOrchestrator {
@@ -41,6 +47,13 @@ export class AgentOrchestrator {
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
     const errors: string[] = [];
+
+    const reasoningMetadata: ReasoningMetadata = {
+      skillMatchScore: 0,
+      experienceMatchScore: 0,
+      locationMatchScore: 0,
+      finalScore: 0,
+    };
 
     // System Prompt — strictly instructing tool calling & passive data parsing
     const systemPrompt = `
@@ -113,11 +126,21 @@ Location: ${context.jobLocation || 'Remote'}
 
             if (toolCall.name === 'resume_parsing_tool') {
               parsingTimeMs = Math.round(performance.now() - toolStart);
-            } else if (
-              toolCall.name === 'deterministic_matching_tool' ||
-              toolCall.name === 'scoring_engine_tool'
-            ) {
+            } else if (toolCall.name === 'deterministic_matching_tool') {
               matchingTimeMs += Math.round(performance.now() - toolStart);
+              const res = toolResult as Record<string, unknown>;
+              reasoningMetadata.skillMatchScore = Number(res.skillMatchScore) || 0;
+              reasoningMetadata.experienceMatchScore = Number(res.experienceMatchScore) || 0;
+              reasoningMetadata.locationMatchScore = Number(res.locationMatchScore) || 0;
+            } else if (toolCall.name === 'scoring_engine_tool') {
+              matchingTimeMs += Math.round(performance.now() - toolStart);
+              const res = toolResult as Record<string, unknown>;
+              reasoningMetadata.finalScore = Number(res.finalScore) || 0;
+            } else if (toolCall.name === 'feature_extraction_tool') {
+              const res = toolResult as Record<string, unknown>;
+              if (Array.isArray(res.skills)) reasoningMetadata.matchingSkills = res.skills as string[];
+              if (typeof res.experienceYears === 'number') reasoningMetadata.detectedExperience = res.experienceYears;
+              if (typeof res.location === 'string') reasoningMetadata.detectedLocation = res.location;
             }
           } catch (toolErr: unknown) {
             const errMessage = toolErr instanceof Error ? toolErr.message : String(toolErr);
@@ -216,6 +239,7 @@ Location: ${context.jobLocation || 'Remote'}
       output: validatedOutput,
       log,
       iterations,
+      metadata: reasoningMetadata,
     };
   }
 }

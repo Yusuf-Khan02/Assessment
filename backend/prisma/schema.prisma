@@ -90,6 +90,7 @@ model hiringProfile {
   recommendationVersion   String?
   recommendationConfidence Float?
   recommendedAt           DateTime?
+  reasoningMetadata       Json?
 
   isDeleted               Boolean       @default(false)
   opening                 Opening       @relation(fields: [openingId], references: [id])

@@ -127,8 +127,10 @@ Where:
 | `/api/vendor/openings/:id/profiles/presign` | `POST` | ✅ Allowed | ❌ 403 Forbidden | Generates presigned PUT URLs for PDF/PPTX only. |
 | `/api/vendor/openings/:id/profiles/upload` | `POST` | ✅ Allowed | ❌ 403 Forbidden | Atomic single transaction batch creation. |
 | `/api/vendor/profiles/:id` | `DELETE` | ✅ Allowed | ❌ 403 Forbidden | Soft-delete, scoped to own tenant and uploaded profile. |
+| `/api/vendor/profiles/:id/preview` | `GET` | ✅ Allowed | ❌ 403 Forbidden | Presigned GET download/preview URL, scoped to own uploaded profile. |
 | `/api/hiring-manager/openings` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Only returns openings assigned to the manager. |
-| `/api/hiring-manager/openings/:id/profiles` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Full AI recommendation fields, scores %, badges. |
+| `/api/hiring-manager/openings/:id/profiles` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Full AI recommendation fields, scores %, badges, & reasoning metadata. |
+| `/api/hiring-manager/profiles/:id/preview` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Presigned GET download/preview URL, scoped to own opening. |
 | `/api/hiring-manager/profiles/:id/shortlist` | `POST` | ❌ 403 Forbidden | ✅ Allowed | Idempotent, scoped to own opening. |
 | `/api/hiring-manager/profiles/:id/reject` | `POST` | ❌ 403 Forbidden | ✅ Allowed | Idempotent, scoped to own opening. |
 
@@ -241,11 +243,11 @@ npm run lint
 - [x] **Token usage logging**: Yes, prompt, completion, and total tokens tracked and logged in `[AGENT_OBSERVABILITY_LOG]`.
 
 ### Final System Expectations Walkthrough
-- [x] **2 personas supported**: IT Vendor and Hiring Manager fully implemented with dedicated interfaces and routes.
+- [x] **2 personas supported**: IT Vendor and Hiring Manager fully implemented with dedicated interfaces, routes, skeleton loaders, and interactive preview modals.
 - [x] **Strict RBAC enforced**: Multi-tenant isolation and role checks on every endpoint. AI fields stripped for vendors.
 - [x] **Tenant isolation maintained**: Cross-tenant requests return 404/403. Zero data leakage verified by automated tests.
-- [x] **S3 files securely managed**: Frontend never receives raw credentials; files uploaded via short-lived presigned PUT URLs.
-- [x] **Deterministic AI agent implemented**: Mathematical scoring engine outside LLM guarantees identical scores for identical inputs.
+- [x] **S3 files securely managed**: Frontend never receives raw credentials; files uploaded via short-lived presigned PUT URLs, and viewed via secure short-lived presigned GET URLs.
+- [x] **Deterministic AI agent implemented**: Mathematical scoring engine outside LLM guarantees identical scores for identical inputs, persisting intermediate reasoning metadata (`skillMatchScore`, `experienceMatchScore`, `locationMatchScore`, `matchingSkills`).
 - [x] **Performance SLAs met**: P95 latency is 236ms (< 2000ms SLA budget); max HTTP blocking call is 28ms (< 2000ms budget).
-- [x] **Production-grade, testable, explainable**: 93 automated tests across backend and frontend, 85.5% test coverage, 0 lint warnings.
+- [x] **Production-grade, testable, explainable**: 101 automated tests across backend (90) and frontend (11), >85% test coverage, 0 lint warnings.
 

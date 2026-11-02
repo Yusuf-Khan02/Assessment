@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Navbar } from '../components/Navbar';
+import { SkeletonDetail } from '../components/SkeletonLoader';
+import { ResumePreviewModal } from '../components/ResumePreviewModal';
 import {
   ArrowLeft,
   UploadCloud,
@@ -14,6 +16,7 @@ import {
   MapPin,
   Briefcase,
   User as UserIcon,
+  Eye,
 } from 'lucide-react';
 
 interface UploadedProfile {
@@ -61,6 +64,7 @@ export const VendorOpeningDetailPage: React.FC = () => {
   const [opening, setOpening] = useState<OpeningDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewProfile, setPreviewProfile] = useState<{ id: number; fileName: string } | null>(null);
 
   // Upload queue state
   const [uploadQueue, setUploadQueue] = useState<UploadProgressItem[]>([]);
@@ -274,9 +278,9 @@ export const VendorOpeningDetailPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
+          <SkeletonDetail />
+        </main>
       </div>
     );
   }
@@ -538,13 +542,22 @@ export const VendorOpeningDetailPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewProfile({ id: p.id, fileName })}
+                        className="flex items-center space-x-1.5 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-900/60 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Preview</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleSoftDelete(p.id)}
-                        className="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
+                        className="flex items-center space-x-1 text-xs text-red-600 hover:text-red-700 dark:text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                         <span>Delete</span>
                       </button>
                     </div>
@@ -555,6 +568,15 @@ export const VendorOpeningDetailPage: React.FC = () => {
           )}
         </section>
       </main>
+
+      {previewProfile && (
+        <ResumePreviewModal
+          profileId={previewProfile.id}
+          fileName={previewProfile.fileName}
+          role="IT_VENDOR"
+          onClose={() => setPreviewProfile(null)}
+        />
+      )}
     </div>
   );
 };

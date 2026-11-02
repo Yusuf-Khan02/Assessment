@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
 import { AgentOrchestrator } from '../agent/orchestrator';
 import {
   LLMProvider,
@@ -82,6 +83,7 @@ export class RecommendationService {
             recommendationLatencyMs: result.log.totalLatencyMs,
             recommendationVersion: this.VERSION,
             recommendedAt: new Date(),
+            reasoningMetadata: result.metadata ? (result.metadata as unknown as Prisma.InputJsonValue) : undefined,
           },
         });
       });

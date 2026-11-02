@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { HiringManagerOpeningDetailPage } from '../pages/HiringManagerOpeningDetailPage';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
@@ -221,6 +222,84 @@ describe('Phase 7 — Hiring Manager Frontend Component Tests', () => {
       expect(screen.getByText(/Virtualized List Active/i)).toBeInTheDocument();
       expect(screen.getByTestId('virtualized-list-container')).toBeInTheDocument();
     });
+  });
+
+  it('renders intermediate reasoning breakdown and opens preview modal on button click', async () => {
+    const profileWithMetadata = {
+      ...sampleProfiles[0],
+      reasoningMetadata: {
+        skillMatchScore: 0.8,
+        experienceMatchScore: 1.0,
+        locationMatchScore: 1.0,
+      },
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/preview')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            profileId: 1,
+            fileName: 'resume_recommended.pdf',
+            previewUrl: 'https://example.com/preview.pdf',
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          opening: sampleOpening,
+          profiles: [profileWithMetadata],
+        }),
+      });
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/hiring-manager/openings/:id" element={<HiringManagerOpeningDetailPage />} />
+      </Routes>,
+      '/hiring-manager/openings/op-hm-1'
+    );
+
+    // Verify intermediate reasoning breakdown
+    await waitFor(() => {
+      expect(screen.getByText(/Deterministic Formula Breakdown/i)).toBeInTheDocument();
+      expect(screen.getByText('Skill Overlap (50%)')).toBeInTheDocument();
+      expect(screen.getByText('80%')).toBeInTheDocument();
+      expect(screen.getByText('Experience (30%)')).toBeInTheDocument();
+      expect(screen.getByText('Location (20%)')).toBeInTheDocument();
+    });
+
+    // Click Preview Resume button
+    const previewBtn = screen.getByRole('button', { name: /preview resume/i });
+    fireEvent.click(previewBtn);
+
+    // Verify preview modal appears
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText(/Secure backend preview/i)).toBeInTheDocument();
+    });
+  });
+
+  it('ErrorBoundary renders fallback UI when child component crashes', () => {
+    const ThrowingComponent = () => {
+      throw new Error('Test Component Crash');
+    };
+
+    // Suppress console.error in test output for intentional throw
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary fallbackTitle="Custom Crash Title">
+        <ThrowingComponent />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText('Custom Crash Title')).toBeInTheDocument();
+    expect(screen.getByText('Test Component Crash')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reload page/i })).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
   });
 });
 
