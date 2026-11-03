@@ -6,6 +6,7 @@ import { AuthService } from '../src/services/auth.service';
 import { UserRole, ProfileStatus } from '@prisma/client';
 import { recommendationQueue } from '../src/queue/recommendation.queue';
 import { Logger } from '../src/utils/logger';
+import { seed } from '../prisma/seed';
 
 describe('Phase 8 — ACID Transactions, Observability & Performance Hardening', () => {
   let tenantId: string;
@@ -20,9 +21,15 @@ describe('Phase 8 — ACID Transactions, Observability & Performance Hardening',
     recommendationQueue.clear();
 
     // Query seeded tenant & users
-    const tenant = await prisma.tenants.findFirst({
+    let tenant = await prisma.tenants.findFirst({
       where: { name: 'Bruce Wayne Corp' },
     });
+    if (!tenant) {
+      await seed();
+      tenant = await prisma.tenants.findFirst({
+        where: { name: 'Bruce Wayne Corp' },
+      });
+    }
     if (!tenant) throw new Error('Tenant not seeded');
     tenantId = tenant.tenantId;
 

@@ -41,16 +41,20 @@ jobs:
       - name: Run Lint
         run: npm run lint
 
-      - name: Run Prisma Generate & Migrations
+      - name: Run Prisma Generate, Migrations & Seed
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/assessment_db?schema=public"
         run: |
           npm run prisma:generate
           npm run prisma:migrate:deploy
+          npm run prisma:seed
 
       - name: Run Tests
         env:
           DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/assessment_db?schema=public"
-          JWT_SECRET: "test-secret-at-least-32-characters-long"
+          JWT_SECRET: "super-secret-contract-jwt-key-32-chars-long!"
+          NODE_ENV: "test"
+          S3_BUCKET: "vendor-assessment-bucket"
+          AWS_REGION: "us-east-1"
         run: npm test
 
