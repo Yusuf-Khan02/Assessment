@@ -98,9 +98,9 @@ Where:
 - **$S$ (Skills Overlap)**:
   $$S = \min\left(1.0, \frac{|\text{CandidateSkills}_{\text{normalized}} \cap \text{RequiredSkills}|}{|\text{RequiredSkills}|}\right)$$
 - **$E$ (Experience Alignment)**:
-  - If $\text{CandidateYears} < \text{ExperienceMin} \implies E = 0.0$
+  - If $\text{CandidateYears} \lt \text{ExperienceMin} \implies E = 0.0$
   - If $\text{ExperienceMin} \le \text{CandidateYears} \le \text{ExperienceMax} \implies E = 1.0$
-  - If $\text{CandidateYears} > \text{ExperienceMax} \implies E = 0.8$ (overqualified penalty)
+  - If $\text{CandidateYears} \gt \text{ExperienceMax} \implies E = 0.8$ (overqualified penalty)
 - **$L$ (Location Alignment)**:
   - If job location is `Remote` $\implies L = 1.0$
   - If job location matches candidate location $\implies L = 1.0$
@@ -127,10 +127,12 @@ Where:
 | `/api/vendor/openings/:id/profiles/presign` | `POST` | ✅ Allowed | ❌ 403 Forbidden | Generates presigned PUT URLs for PDF/PPTX only. |
 | `/api/vendor/openings/:id/profiles/upload` | `POST` | ✅ Allowed | ❌ 403 Forbidden | Atomic single transaction batch creation. |
 | `/api/vendor/profiles/:id` | `DELETE` | ✅ Allowed | ❌ 403 Forbidden | Soft-delete, scoped to own tenant and uploaded profile. |
-| `/api/vendor/profiles/:id/preview` | `GET` | ✅ Allowed | ❌ 403 Forbidden | Presigned GET download/preview URL, scoped to own uploaded profile. |
+| `/api/vendor/profiles/:id/preview` | `GET` | ✅ Allowed | ❌ 403 Forbidden | Backend preview URL metadata, scoped to own uploaded profile. |
+| `/api/vendor/profiles/:id/preview/file` | `GET` | ✅ Allowed | ❌ 403 Forbidden | Secure file stream with inline disposition (supports JWT header & query token). |
 | `/api/hiring-manager/openings` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Only returns openings assigned to the manager. |
 | `/api/hiring-manager/openings/:id/profiles` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Full AI recommendation fields, scores %, badges, & reasoning metadata. |
-| `/api/hiring-manager/profiles/:id/preview` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Presigned GET download/preview URL, scoped to own opening. |
+| `/api/hiring-manager/profiles/:id/preview` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Backend preview URL metadata, scoped to own opening. |
+| `/api/hiring-manager/profiles/:id/preview/file` | `GET` | ❌ 403 Forbidden | ✅ Allowed | Secure file stream with inline disposition (supports JWT header & query token). |
 | `/api/hiring-manager/profiles/:id/shortlist` | `POST` | ❌ 403 Forbidden | ✅ Allowed | Idempotent, scoped to own opening. |
 | `/api/hiring-manager/profiles/:id/reject` | `POST` | ❌ 403 Forbidden | ✅ Allowed | Idempotent, scoped to own opening. |
 
@@ -164,7 +166,7 @@ cp .env.example .env
 | `LLM_PROVIDER` | LLM Provider (`gemini`, `groq`, `mock`) | `mock` (built-in autonomous agent) |
 | `LLM_API_KEY` | API Key for Gemini or Groq | Optional in dev/test |
 | `LLM_MODEL` | LLM Model name | `gemini-1.5-flash` or `llama-3.3-70b-versatile` |
-| `PORT` | Backend HTTP port | `3001` |
+| `PORT` | Backend HTTP port | `4000` |
 
 ---
 
@@ -207,8 +209,8 @@ The seed script creates:
 ```bash
 npm run dev
 ```
-- **Backend API**: http://localhost:3001 (Health check: http://localhost:3001/health)
-- **Frontend App**: http://localhost:5173
+- **Backend API**: http://localhost:4000 (Health check: http://localhost:4000/health)
+- **Frontend App**: http://localhost:3000
 
 ---
 
@@ -249,5 +251,5 @@ npm run lint
 - [x] **S3 files securely managed**: Frontend never receives raw credentials; files uploaded via short-lived presigned PUT URLs, and viewed via secure short-lived presigned GET URLs.
 - [x] **Deterministic AI agent implemented**: Mathematical scoring engine outside LLM guarantees identical scores for identical inputs, persisting intermediate reasoning metadata (`skillMatchScore`, `experienceMatchScore`, `locationMatchScore`, `matchingSkills`).
 - [x] **Performance SLAs met**: P95 latency is 236ms (< 2000ms SLA budget); max HTTP blocking call is 28ms (< 2000ms budget).
-- [x] **Production-grade, testable, explainable**: 101 automated tests across backend (90) and frontend (11), >85% test coverage, 0 lint warnings.
+- [x] **Production-grade, testable, explainable**: 104 automated tests across backend (93) and frontend (11), >85% test coverage, 0 lint warnings.
 
