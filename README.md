@@ -52,8 +52,8 @@ flowchart TD
 
     subgraph Persistence ["Persistence Layer"]
         Prisma["Prisma ORM (ACID Single-Transaction Guarantees)"]
-        Postgres[(PostgreSQL 16 Multi-Tenant DB)]
-        S3[(AWS S3 / LocalStack Object Storage)]
+        Postgres[("PostgreSQL 16 Multi-Tenant DB")]
+        S3[("AWS S3 / LocalStack Object Storage")]
     end
 
     UI_Vendor --> MW_ID
@@ -64,9 +64,9 @@ flowchart TD
     MW_TENANT --> Ctrl_Manager
     MW_TENANT --> Ctrl_Auth
 
-    Ctrl_Vendor -->|1. Presign PUT URL| S3
-    Ctrl_Vendor -->|2. Batch Submit Profiles (Atomic TX)| Prisma
-    Ctrl_Vendor -->|3. Trigger Async Evaluation| Queue
+    Ctrl_Vendor -->|"1. Presign PUT URL"| S3
+    Ctrl_Vendor -->|"2. Batch Submit Profiles - Atomic TX"| Prisma
+    Ctrl_Vendor -->|"3. Trigger Async Evaluation"| Queue
     
     Queue --> Orchestrator
     Orchestrator --> Sanitizer
@@ -77,10 +77,10 @@ flowchart TD
     Orchestrator --> T_Norm
     Orchestrator --> T_Match
     Orchestrator --> T_Score
-    T_Parse -.->|Fetch S3 Content (Never raw bytes to LLM)| S3
+    T_Parse -.->|"Fetch S3 Content - No Raw Bytes to LLM"| S3
 
-    Orchestrator -->|Atomic Write Recommendation| Prisma
-    Ctrl_Manager -->|Shortlist / Reject (Atomic TX)| Prisma
+    Orchestrator -->|"Atomic Write Recommendation"| Prisma
+    Ctrl_Manager -->|"Shortlist / Reject - Atomic TX"| Prisma
     Prisma --> Postgres
 ```
 
